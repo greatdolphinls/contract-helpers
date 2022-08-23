@@ -1,11 +1,10 @@
-/* eslint-disable @typescript-eslint/restrict-template-expressions */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable prefer-rest-params */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { utils } from 'ethers';
-import { amount0OrPositiveValidator, amountGtThan0OrMinus1, amountGtThan0Validator, isDeadline32BytesValidator, isEthAddressArrayValidator, 
+import { amount0OrPositiveValidator, amountGtThan0OrMinus1, amountGtThan0Validator, isEthAddressArrayValidator, 
 // isEthAddressArrayValidatorNotEmpty,
 isEthAddressOrEnsValidator, isEthAddressValidator,
 // optionalValidator,
@@ -123,24 +122,6 @@ export function LPValidator(target, propertyName, descriptor) {
         return method.apply(this, arguments);
     };
 }
-export function L2PValidator(target, propertyName, descriptor) {
-    const method = descriptor.value;
-    descriptor.value = function () {
-        if (
-        // @ts-expect-error todo: check why this ignore is needed
-        !utils.isAddress(this.l2PoolAddress) ||
-            // @ts-expect-error todo: check why this ignore is needed
-            !utils.isAddress(this.encoderAddress)) {
-            console.error(
-            // @ts-expect-error todo: check why this ignore is needed
-            `[L2PoolValidator] You need to pass valid addresses: l2pool: ${this.l2PoolAddress} encoder: ${this.encoderAddress}`);
-            return [];
-        }
-        // isEthAddressValidator(target, propertyName, arguments);
-        isDeadline32BytesValidator(target, propertyName, arguments);
-        return method.apply(this, arguments);
-    };
-}
 export function LPValidatorV3(target, propertyName, descriptor) {
     const method = descriptor.value;
     descriptor.value = function () {
@@ -153,18 +134,6 @@ export function LPValidatorV3(target, propertyName, descriptor) {
         amountGtThan0Validator(target, propertyName, arguments);
         amountGtThan0OrMinus1(target, propertyName, arguments);
         amount0OrPositiveValidator(target, propertyName, arguments);
-        return method.apply(this, arguments);
-    };
-}
-export function UiIncentiveDataProviderValidator(target, propertyName, descriptor) {
-    const method = descriptor.value;
-    descriptor.value = function () {
-        // @ts-expect-error todo: check why this ignore is needed
-        if (!utils.isAddress(this.uiIncentiveDataProviderAddress)) {
-            console.error(`[UiIncentiveDataProviderValidator] You need to pass valid addresses`);
-            throw new Error('UiIncentiveDataProviderAddress must be an eth valid address');
-        }
-        isEthAddressValidator(target, propertyName, arguments);
         return method.apply(this, arguments);
     };
 }
@@ -346,13 +315,6 @@ export function GovDelegationValidator(target, propertyName, descriptor) {
         isEthAddressOrEnsValidator(target, propertyName, arguments);
         amountGtThan0Validator(target, propertyName, arguments);
         amount0OrPositiveValidator(target, propertyName, arguments);
-        return method.apply(this, arguments);
-    };
-}
-export function StackeUiDataProviderValidator(target, propertyName, descriptor) {
-    const method = descriptor.value;
-    descriptor.value = function () {
-        isEthAddressValidator(target, propertyName, arguments);
         return method.apply(this, arguments);
     };
 }

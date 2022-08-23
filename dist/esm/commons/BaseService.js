@@ -22,25 +22,31 @@ export default class BaseService {
             return tx;
         };
         this.generateTxPriceEstimation = (txs, txCallback, action = ProtocolAction.default) => async (force = false) => {
-            const gasPrice = await this.provider.getGasPrice();
-            const hasPendingApprovals = txs.find(tx => tx.txType === eEthereumTxType.ERC20_APPROVAL);
-            if (!hasPendingApprovals || force) {
-                const { gasLimit, gasPrice: gasPriceProv } = await txCallback();
-                if (!gasLimit) {
-                    // If we don't recieve the correct gas we throw a error
-                    throw new Error('Transaction calculation error');
+            try {
+                const gasPrice = await this.provider.getGasPrice();
+                const hasPendingApprovals = txs.find(tx => tx.txType === eEthereumTxType.ERC20_APPROVAL);
+                if (!hasPendingApprovals || force) {
+                    const { gasLimit, gasPrice: gasPriceProv } = await txCallback();
+                    if (!gasLimit) {
+                        // If we don't recieve the correct gas we throw a error
+                        throw new Error('Transaction calculation error');
+                    }
+                    return {
+                        gasLimit: gasLimit.toString(),
+                        gasPrice: gasPriceProv
+                            ? gasPriceProv.toString()
+                            : gasPrice.toString(),
+                    };
                 }
                 return {
-                    gasLimit: gasLimit.toString(),
-                    gasPrice: gasPriceProv
-                        ? gasPriceProv.toString()
-                        : gasPrice.toString(),
+                    gasLimit: gasLimitRecommendations[action].recommended,
+                    gasPrice: gasPrice.toString(),
                 };
             }
-            return {
-                gasLimit: gasLimitRecommendations[action].recommended,
-                gasPrice: gasPrice.toString(),
-            };
+            catch (error) {
+                console.error('Calculate error on calculate estimation gas price.', error);
+                return null;
+            }
         };
         this.contractFactory = contractFactory;
         this.provider = provider;

@@ -147,7 +147,6 @@ export interface ReservesDataHumanized {
 }
 
 export interface UserReserveDataHumanized {
-  id: string;
   underlyingAsset: string;
   scaledATokenBalance: string;
   usageAsCollateralEnabledOnUser: boolean;

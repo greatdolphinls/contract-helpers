@@ -82,7 +82,6 @@ export const reservesMock: ReservesData = {
         _hex: '0x0',
         _isBigNumber: true,
       }),
-      priceOracle: '0x796ec26fc7df8D81BCB5BABF74ccdE0E2B122164',
       variableRateSlope1: BigNumber.from({
         _hex: '0x0',
         _isBigNumber: true,
@@ -96,18 +95,6 @@ export const reservesMock: ReservesData = {
         _isBigNumber: true,
       }),
       stableRateSlope2: BigNumber.from({
-        _hex: '0x0',
-        _isBigNumber: true,
-      }),
-      baseStableBorrowRate: BigNumber.from({
-        _hex: '0x0',
-        _isBigNumber: true,
-      }),
-      baseVariableBorrowRate: BigNumber.from({
-        _hex: '0x0',
-        _isBigNumber: true,
-      }),
-      optimalUsageRatio: BigNumber.from({
         _hex: '0x0',
         _isBigNumber: true,
       }),
@@ -130,23 +117,6 @@ export const reservesMock: ReservesData = {
       eModeLiquidationBonus: 1,
       eModePriceSource: '0x3E0437898a5667a4769B1Ca5A34aAB1ae7E81377',
       eModeLabel: 'test label',
-      borrowableInIsolation: false,
-      accruedToTreasury: BigNumber.from({
-        _hex: '0x0',
-        _isBigNumber: true,
-      }),
-      unbacked: BigNumber.from({
-        _hex: '0x0',
-        _isBigNumber: true,
-      }),
-      isolationModeTotalDebt: BigNumber.from({
-        _hex: '0x0',
-        _isBigNumber: true,
-      }),
-      debtCeilingDecimals: BigNumber.from({
-        _hex: '0x0',
-        _isBigNumber: true,
-      }),
     },
     {
       underlyingAsset: '0xA478c2975Ab1Ea89e8196811F51A7B7Ade33eB11',
@@ -227,7 +197,6 @@ export const reservesMock: ReservesData = {
         _hex: '0x0',
         _isBigNumber: true,
       }),
-      priceOracle: '0x796ec26fc7df8D81BCB5BABF74ccdE0E2B122164',
       variableRateSlope1: BigNumber.from({
         _hex: '0x0',
         _isBigNumber: true,
@@ -241,18 +210,6 @@ export const reservesMock: ReservesData = {
         _isBigNumber: true,
       }),
       stableRateSlope2: BigNumber.from({
-        _hex: '0x0',
-        _isBigNumber: true,
-      }),
-      baseStableBorrowRate: BigNumber.from({
-        _hex: '0x0',
-        _isBigNumber: true,
-      }),
-      baseVariableBorrowRate: BigNumber.from({
-        _hex: '0x0',
-        _isBigNumber: true,
-      }),
-      optimalUsageRatio: BigNumber.from({
         _hex: '0x0',
         _isBigNumber: true,
       }),
@@ -275,23 +232,6 @@ export const reservesMock: ReservesData = {
       eModeLiquidationBonus: 1,
       eModePriceSource: '0x3E0437898a5667a4769B1Ca5A34aAB1ae7E81377',
       eModeLabel: 'test label',
-      borrowableInIsolation: false,
-      accruedToTreasury: BigNumber.from({
-        _hex: '0x0',
-        _isBigNumber: true,
-      }),
-      unbacked: BigNumber.from({
-        _hex: '0x0',
-        _isBigNumber: true,
-      }),
-      isolationModeTotalDebt: BigNumber.from({
-        _hex: '0x0',
-        _isBigNumber: true,
-      }),
-      debtCeilingDecimals: BigNumber.from({
-        _hex: '0x0',
-        _isBigNumber: true,
-      }),
     },
   ],
   1: {

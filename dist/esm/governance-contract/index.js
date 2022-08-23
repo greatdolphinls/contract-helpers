@@ -1,6 +1,7 @@
 import { __decorate, __metadata, __param } from "tslib";
 import { formatEther } from 'ethers/lib/utils';
 import BaseService from '../commons/BaseService';
+import { getProposalMetadata } from '../commons/ipfs';
 import { eEthereumTxType, } from '../commons/types';
 import { GovHelperValidator, GovValidator, } from '../commons/validators/methodValidators';
 import { is0OrPositiveAmount, isEthAddress, isEthAddressArray, } from '../commons/validators/paramValidators';
@@ -8,32 +9,19 @@ import { IAaveGovernanceV2__factory } from './typechain/IAaveGovernanceV2__facto
 import { IGovernanceStrategy__factory } from './typechain/IGovernanceStrategy__factory';
 import { IGovernanceV2Helper__factory } from './typechain/IGovernanceV2Helper__factory';
 import { ProposalState, } from './types';
-export const humanizeProposal = (rawProposal) => {
-    return {
-        id: Number(rawProposal.id.toString()),
-        creator: rawProposal.creator,
-        executor: rawProposal.executor,
-        targets: rawProposal.targets,
-        values: rawProposal.values,
-        signatures: rawProposal.signatures,
-        calldatas: rawProposal.calldatas,
-        withDelegatecalls: rawProposal.withDelegatecalls,
-        startBlock: Number(rawProposal.startBlock.toString()),
-        endBlock: Number(rawProposal.endBlock.toString()),
-        executionTime: Number(rawProposal.executionTime.toString()),
-        forVotes: rawProposal.forVotes.toString(),
-        againstVotes: rawProposal.againstVotes.toString(),
-        executed: rawProposal.executed,
-        canceled: rawProposal.canceled,
-        strategy: rawProposal.strategy,
-        state: Object.values(ProposalState)[rawProposal.proposalState],
-        minimumQuorum: rawProposal.minimumQuorum.toString(),
-        minimumDiff: rawProposal.minimumDiff.toString(),
-        executionTimeWithGracePeriod: Number(rawProposal.executionTimeWithGracePeriod.toString()),
-        proposalCreated: Number(rawProposal.proposalCreated.toString()),
-        totalVotingSupply: rawProposal.totalVotingSupply.toString(),
-        ipfsHash: rawProposal.ipfsHash,
-    };
+export const parseProposal = async (rawProposal) => {
+    const { id, creator, executor, targets, values, signatures, calldatas, withDelegatecalls, startBlock, endBlock, executionTime, forVotes, againstVotes, executed, canceled, strategy, ipfsHash: ipfsHex, totalVotingSupply, minimumQuorum, minimumDiff, executionTimeWithGracePeriod, proposalCreated, proposalState, } = rawProposal;
+    const proposalMetadata = await getProposalMetadata(ipfsHex);
+    const proposal = Object.assign({ id: Number(id.toString()), creator,
+        executor,
+        targets,
+        values,
+        signatures,
+        calldatas,
+        withDelegatecalls, startBlock: Number(startBlock.toString()), endBlock: Number(endBlock.toString()), executionTime: executionTime.toString(), forVotes: forVotes.toString(), againstVotes: againstVotes.toString(), executed,
+        canceled,
+        strategy, state: Object.values(ProposalState)[proposalState], minimumQuorum: minimumQuorum.toString(), minimumDiff: minimumDiff.toString(), executionTimeWithGracePeriod: executionTimeWithGracePeriod.toString(), proposalCreated: Number(proposalCreated.toString()), totalVotingSupply: totalVotingSupply.toString() }, proposalMetadata);
+    return proposal;
 };
 export class AaveGovernanceService extends BaseService {
     constructor(provider, config) {
@@ -59,12 +47,8 @@ export class AaveGovernanceService extends BaseService {
     async getProposals({ skip, limit, }) {
         const helper = IGovernanceV2Helper__factory.connect(this.aaveGovernanceV2HelperAddress, this.provider);
         const result = await helper.getProposals(skip.toString(), limit.toString(), this.aaveGovernanceV2Address);
-        return result.map(proposal => humanizeProposal(proposal));
-    }
-    async getProposal({ proposalId }) {
-        const helper = IGovernanceV2Helper__factory.connect(this.aaveGovernanceV2HelperAddress, this.provider);
-        const result = await helper.getProposal(proposalId, this.aaveGovernanceV2Address);
-        return humanizeProposal(result);
+        const proposals = Promise.all(result.map(async (rawProposal) => parseProposal(rawProposal)));
+        return proposals;
     }
     async getVotingPowerAt({ user, block, strategy }) {
         const proposalStrategy = IGovernanceStrategy__factory.connect(strategy, this.provider);
@@ -78,10 +62,6 @@ export class AaveGovernanceService extends BaseService {
     async getVoteOnProposal({ proposalId, user }) {
         const govContract = this.getContractInstance(this.aaveGovernanceV2Address);
         return govContract.getVoteOnProposal(proposalId, user);
-    }
-    async getProposalsCount() {
-        const govContract = this.getContractInstance(this.aaveGovernanceV2Address);
-        return (await govContract.getProposalsCount()).toNumber();
     }
 }
 __decorate([
@@ -98,13 +78,6 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], AaveGovernanceService.prototype, "getProposals", null);
-__decorate([
-    GovHelperValidator,
-    __param(0, is0OrPositiveAmount('proposalId')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", Promise)
-], AaveGovernanceService.prototype, "getProposal", null);
 __decorate([
     GovValidator,
     __param(0, isEthAddress('user')),
@@ -128,10 +101,4 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], AaveGovernanceService.prototype, "getVoteOnProposal", null);
-__decorate([
-    GovValidator,
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", Promise)
-], AaveGovernanceService.prototype, "getProposalsCount", null);
 //# sourceMappingURL=index.js.map

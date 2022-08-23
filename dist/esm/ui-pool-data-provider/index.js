@@ -29,7 +29,6 @@ export class UiPoolDataProvider {
             throw new Error('contract address is not valid');
         }
         this._contract = UiPoolDataProviderFactory.connect(context.uiPoolDataProviderAddress, context.provider);
-        this.chainId = context.chainId;
     }
     /**
      * Get the underlying asset address for each lending pool reserve
@@ -64,7 +63,7 @@ export class UiPoolDataProvider {
     async getReservesHumanized(lendingPoolAddressProvider) {
         const { 0: reservesRaw, 1: poolBaseCurrencyRaw } = await this.getReservesData(lendingPoolAddressProvider);
         const reservesData = reservesRaw.map(reserveRaw => ({
-            id: `${this.chainId}-${reserveRaw.underlyingAsset}-${lendingPoolAddressProvider}`.toLowerCase(),
+            id: (reserveRaw.underlyingAsset + lendingPoolAddressProvider).toLowerCase(),
             underlyingAsset: reserveRaw.underlyingAsset.toLowerCase(),
             name: reserveRaw.name,
             symbol: ammSymbolMap[reserveRaw.underlyingAsset.toLowerCase()]
@@ -116,7 +115,6 @@ export class UiPoolDataProvider {
     async getUserReservesHumanized(lendingPoolAddressProvider, user) {
         const userReservesRaw = await this.getUserReservesData(lendingPoolAddressProvider, user);
         return userReservesRaw.map((userReserveRaw) => ({
-            id: `${this.chainId}-${user}-${userReserveRaw.underlyingAsset}-${lendingPoolAddressProvider}`.toLowerCase(),
             underlyingAsset: userReserveRaw.underlyingAsset.toLowerCase(),
             scaledATokenBalance: userReserveRaw.scaledATokenBalance.toString(),
             usageAsCollateralEnabledOnUser: userReserveRaw.usageAsCollateralEnabledOnUser,

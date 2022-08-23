@@ -3,452 +3,60 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
-# 1.5.0 (2022-07-25)
-
-
-### Features
-
-* add arbitrum goerli chainId ([#392](https://github.com/aave/aave-utilities/issues/392)) ([7a25f29](https://github.com/aave/aave-utilities/commit/7a25f29bdf24166b15f5ce0889ab687a56584771))
-
-
-
-
-
-# 1.4.0 (2022-07-15)
-
-
-### Features
-
-* add optimism goerli chainId ([#386](https://github.com/aave/aave-utilities/issues/386)) ([0c569de](https://github.com/aave/aave-utilities/commit/0c569de6da072f25012850f5aaa6082badc5d488))
-
-
-
-
-
-## 1.3.8 (2022-06-29)
-
-**Note:** Version bump only for package @aave/contract-helpers
-
-
-
-
-
-## 1.3.7 (2022-06-15)
-
-**Note:** Version bump only for package @aave/contract-helpers
-
-
-
-
-
-## 1.3.6 (2022-06-14)
-
-
-### Reverts
-
-* Revert "fix: revert switch to simple flashloan (#364)" (#366) ([86364c0](https://github.com/aave/aave-utilities/commit/86364c02bb63fc73f8d8211009ecf05f82a7aa39)), closes [#364](https://github.com/aave/aave-utilities/issues/364) [#366](https://github.com/aave/aave-utilities/issues/366)
-
-
-
-
-
-## 1.3.5 (2022-06-10)
-
-**Note:** Version bump only for package @aave/contract-helpers
-
-
-
-
-
-## 1.3.4 (2022-06-07)
-
-
-### Bug Fixes
-
-* revert switch to simple flashloan ([#364](https://github.com/aave/aave-utilities/issues/364)) ([0627575](https://github.com/aave/aave-utilities/commit/0627575410a8e5dbe65dcc5a55d6f4057b6180f2))
-
-
-
-
-
-## 1.3.3 (2022-05-24)
-
-**Note:** Version bump only for package @aave/contract-helpers
-
-
-
-
-
-## 1.3.2 (2022-05-16)
-
-
-### Bug Fixes
-
-* make user incentives data id unique ([#346](https://github.com/aave/aave-utilities/issues/346)) ([2fac5fd](https://github.com/aave/aave-utilities/commit/2fac5fd24695f36f43a6c9a49875b6d01cf70413))
-
-
-
-
-
-## 1.3.1 (2022-05-16)
-
-**Note:** Version bump only for package @aave/contract-helpers
-
-
-
-
-
-# 1.3.0 (2022-05-11)
-
-
-### Features
-
-* update READMEs ([#344](https://github.com/aave/aave-utilities/issues/344)) ([8e2bfa7](https://github.com/aave/aave-utilities/commit/8e2bfa7491c23e153a53bb6a096dbdb624aa6d00))
-
-
-
-
-
-## 1.2.2 (2022-05-09)
-
-
-### Bug Fixes
-
-* **package:** url defect in manifest ([#322](https://github.com/aave/aave-utilities/issues/322)) ([582157a](https://github.com/aave/aave-utilities/commit/582157a019b7a2de32184e1c6726ad8daa3c5075))
-
-
-
-
-
-## 1.2.1 (2022-04-21)
-
-**Note:** Version bump only for package @aave/contract-helpers
-
-
-
-
-
-# 1.2.0 (2022-04-20)
-
-
-### Features
-
-* add unbackedUSD field ([#329](https://github.com/@aave/aave-utilities/issues/329)) ([7d6feea](https://github.com/@aave/aave-utilities/commit/7d6feeacffbd3318f78e50a8caa9f772f8b14ff4))
-
-
-
-
-
-## 1.1.2 (2022-04-20)
-
-
-### Bug Fixes
-
-* added augustus to call data for paraswap repay call ([#326](https://github.com/@aave/aave-utilities/issues/326)) ([cf8445e](https://github.com/@aave/aave-utilities/commit/cf8445e6cb2f6b7bed3a5f372c1436135258ea04))
-
-
-
-
-
-## 1.1.1 (2022-04-18)
-
-**Note:** Version bump only for package @aave/contract-helpers
-
-
-
-
-
-# 1.1.0 (2022-03-28)
-
-
-### Features
-
-* added paraswap repay to v2 ([#317](https://github.com/@aave/aave-utilities/issues/317)) ([eba5e4e](https://github.com/@aave/aave-utilities/commit/eba5e4e3fe3ea91fecef5c17c15c3843c64a3896))
-
-
-
-
-
-## 1.0.4 (2022-03-15)
-
-**Note:** Version bump only for package @aave/contract-helpers
-
-
-
-
-
-## 1.0.3 (2022-03-15)
-
-**Note:** Version bump only for package @aave/contract-helpers
-
-
-
-
-
-## 1.0.2 (2022-03-15)
-
-
-### Bug Fixes
-
-* rewrap bn ([#313](https://github.com/@aave/aave-utilities/issues/313)) ([86e675b](https://github.com/@aave/aave-utilities/commit/86e675beafa416b6527d2957b76bf6507d87d77d))
-
-
-
-
-
-## 1.0.1 (2022-03-15)
-
-**Note:** Version bump only for package @aave/contract-helpers
-
-
-
-
-
-## 0.30.1 (2022-02-28)
-
-
-### Bug Fixes
-
-* update paraswap calldata mapping ([#295](https://github.com/@aave/aave-utilities/issues/295)) ([#296](https://github.com/@aave/aave-utilities/issues/296)) ([5ec74b9](https://github.com/@aave/aave-utilities/commit/5ec74b9d1a53b6086a6d906181452b6b8ec923ae))
-
-
-
-
-
-# 0.30.0 (2022-02-03)
-
-
-### Features
-
-* enforce providing chain ([#275](https://github.com/@aave/aave-utilities/issues/275)) ([10758e2](https://github.com/@aave/aave-utilities/commit/10758e2836ec3e72ccbf1ffe87644e74952aa7fc))
-
-
-
-
-
-## 0.29.1 (2022-02-01)
-
-
-### Bug Fixes
-
-* add unique ids ([#271](https://github.com/@aave/aave-utilities/issues/271)) ([a621706](https://github.com/@aave/aave-utilities/commit/a62170698bfeec047aca743f94a023707f1f5238))
-
-
-
-
-
-# 0.29.0 (2022-02-01)
-
-
-### Features
-
-* make user formatter generic ([#270](https://github.com/@aave/aave-utilities/issues/270)) ([5a33387](https://github.com/@aave/aave-utilities/commit/5a3338722b4b1c6e7c6f869548410249a88998a3))
-
-
-
-
-
-## 0.28.2 (2022-01-28)
-
-**Note:** Version bump only for package @aave/contract-helpers
-
-
-
-
-
-## 0.28.1 (2022-01-27)
-
-**Note:** Version bump only for package @aave/contract-helpers
-
-
-
-
-
-# 0.28.0 (2022-01-27)
-
-
-* feat!: migrate helpers to support v2 and v3 (#176) ([b679d19](https://github.com/@aave/aave-utilities/commit/b679d19f24a4ff78e6bcf73029dbedc9b04dc5ea)), closes [#176](https://github.com/@aave/aave-utilities/issues/176)
-
-
-### BREAKING CHANGES
-
-* The contract helper now contains all required helpers to build a/the ui.
-A lot of interfaces have been aligned which caused breaking changes in all places. Make sure to check out the new docs.
-
-Co-authored-by: Lukas <lukasstrassel@googlemail.com>
-Co-authored-by: Andrew Schmidt <andrew@aave.com>
-
-
-
-
-
-# Change Log
-
-All notable changes to this project will be documented in this file. See
-[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
-
-## 0.27.3 (2021-12-16)
-
-**Note:** Version bump only for package @aave/contract-helpers
-
-
-
-
-
-## 0.27.2 (2021-12-16)
-
-
-### Bug Fixes
-
-* use correct rate for compounding ([#229](https://github.com/@aave/aave-utilities/issues/229)) ([a34b171](https://github.com/@aave/aave-utilities/commit/a34b1713e3fd3858b68cf07d1a251e27f51c8e55))
-
-
-
-
-
-## 0.27.1 (2021-12-09)
-
-**Note:** Version bump only for package @aave/contract-helpers
-
-
-
-
-
-# 0.27.0 (2021-12-03)
-
-
-### Features
-
-* add xdai ([#211](https://github.com/@aave/aave-utilities/issues/211)) ([43ce27e](https://github.com/@aave/aave-utilities/commit/43ce27ed932ca2008ca0ac7894bc26b559bdefd8))
-
-
-
-
-
-## 0.26.5 (2021-12-02)
-
-**Note:** Version bump only for package @aave/contract-helpers
-
-
-
-
-
-## 0.26.4 (2021-12-02)
-
-**Note:** Version bump only for package @aave/contract-helpers
-
-
-
-
-
-## 0.26.3 (2021-12-02)
-
-**Note:** Version bump only for package @aave/contract-helpers
-
-
-
-
-
-## 0.26.2 (2021-11-22)
-
-
-### Bug Fixes
-
-* drop fetch options ([#193](https://github.com/@aave/aave-utilities/issues/193)) ([f6d0cf9](https://github.com/@aave/aave-utilities/commit/f6d0cf9edb7ffdea43a3ac2bbd505cea3d24710c))
-
-
-
-
-
-## 0.26.1 (2021-11-21)
-
-
-### Bug Fixes
-
-* drop ipfs fetching ([#186](https://github.com/@aave/aave-utilities/issues/186)) ([cffb69e](https://github.com/@aave/aave-utilities/commit/cffb69eae36279b9946c0815dea04c36a9a9f1e5))
-
-
-
-
-
-# 0.26.0 (2021-11-19)
-
-
-### Features
-
-* make gateway configurable ([#185](https://github.com/@aave/aave-utilities/issues/185)) ([b0b63a7](https://github.com/@aave/aave-utilities/commit/b0b63a7832cdeb282f4ba244be84ae40342a06d0))
-
-
-
-
-
-## 0.25.8 (2021-11-18)
-
-
-### Bug Fixes
-
-* dont encode encoded hashes ([#183](https://github.com/@aave/aave-utilities/issues/183)) ([90e001b](https://github.com/@aave/aave-utilities/commit/90e001bb13ced072ea1532d767e9ed0678e13430))
-
-
-
-
-
-## 0.25.7 (2021-11-16)
-
-**Note:** Version bump only for package @aave/contract-helpers
-
-## 0.25.6 (2021-11-16)
-
-**Note:** Version bump only for package @aave/contract-helpers
-
-## 0.25.5 (2021-11-16)
-
-**Note:** Version bump only for package @aave/contract-helpers
-
-## 0.25.4 (2021-11-15)
-
-**Note:** Version bump only for package @aave/contract-helpers
-
-## 0.25.3 (2021-11-15)
-
-**Note:** Version bump only for package @aave/contract-helpers
-
 ## 0.25.2 (2021-11-12)
 
+
 ### Bug Fixes
 
-- remove staking address from type
-  ([#173](https://github.com/@aave/aave-utilities/issues/173))
-  ([57ff194](https://github.com/@aave/aave-utilities/commit/57ff1944c174a3fa32df755c7e08ee18a614f914))
+* remove staking address from type ([#173](https://github.com/@aave/aave-utilities/issues/173)) ([57ff194](https://github.com/@aave/aave-utilities/commit/57ff1944c174a3fa32df755c7e08ee18a614f914))
+
+
+
+
 
 ## 0.25.1 (2021-11-11)
 
+
 ### Bug Fixes
 
-- coverage ([#171](https://github.com/@aave/aave-utilities/issues/171))
-  ([9c16633](https://github.com/@aave/aave-utilities/commit/9c166331e1c343481129a49b3e4eb610b2de13f6))
+* coverage ([#171](https://github.com/@aave/aave-utilities/issues/171)) ([9c16633](https://github.com/@aave/aave-utilities/commit/9c166331e1c343481129a49b3e4eb610b2de13f6))
+
+
+
+
 
 # 0.25.0 (2021-11-10)
 
+
 ### Features
 
-- v3 pool contract ([#165](https://github.com/@aave/aave-utilities/issues/165))
-  ([25676f4](https://github.com/@aave/aave-utilities/commit/25676f45e747ac6ff5827ac09e3c3c73658035ee))
+* v3 pool contract ([#165](https://github.com/@aave/aave-utilities/issues/165)) ([25676f4](https://github.com/@aave/aave-utilities/commit/25676f45e747ac6ff5827ac09e3c3c73658035ee))
+
+
+
+
 
 ## 0.24.2 (2021-11-08)
 
+
 ### Bug Fixes
 
-- bind this context ([#164](https://github.com/@aave/aave-utilities/issues/164))
-  ([b1606ab](https://github.com/@aave/aave-utilities/commit/b1606ab89d214c0d46e2c7eb0ae06f7ad3c9bc3a))
+* bind this context ([#164](https://github.com/@aave/aave-utilities/issues/164)) ([b1606ab](https://github.com/@aave/aave-utilities/commit/b1606ab89d214c0d46e2c7eb0ae06f7ad3c9bc3a))
+
+
+
+
 
 ## 0.24.1 (2021-11-08)
 
+
 ### Bug Fixes
 
-- user usd formatting
-  ([#155](https://github.com/@aave/aave-utilities/issues/155))
-  ([0f3521b](https://github.com/@aave/aave-utilities/commit/0f3521bf0862f0c0b70b6d3b6c2801414cdce977))
+* user usd formatting ([#155](https://github.com/@aave/aave-utilities/issues/155)) ([0f3521b](https://github.com/@aave/aave-utilities/commit/0f3521bf0862f0c0b70b6d3b6c2801414cdce977))
+
+
+
+
 
 # Change Log
 
@@ -457,11 +65,14 @@ All notable changes to this project will be documented in this file. See
 
 # 0.24.0 (2021-11-08)
 
+
 ### Features
 
-- added new fields to v3 uipooldataprovider
-  ([#154](https://github.com/@aave/aave-utilities/issues/154))
-  ([09584fe](https://github.com/@aave/aave-utilities/commit/09584fede051cfc2be0c05d496d31018431a69f2))
+* added new fields to v3 uipooldataprovider ([#154](https://github.com/@aave/aave-utilities/issues/154)) ([09584fe](https://github.com/@aave/aave-utilities/commit/09584fede051cfc2be0c05d496d31018431a69f2))
+
+
+
+
 
 # Change Log
 

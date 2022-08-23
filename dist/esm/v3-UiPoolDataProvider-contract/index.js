@@ -1,5 +1,5 @@
 import { isAddress } from 'ethers/lib/utils';
-import { IUiPoolDataProviderV3__factory } from './typechain/IUiPoolDataProviderV3__factory';
+import { IUiPoolDataProvider__factory } from './typechain/IUiPoolDataProvider__factory';
 export * from './types';
 const ammSymbolMap = {
     '0xae461ca67b15dc8dc81ce7615e0320da1a9ab8d5': 'UNIDAIUSDC',
@@ -28,13 +28,12 @@ export class UiPoolDataProvider {
         if (!isAddress(context.uiPoolDataProviderAddress)) {
             throw new Error('contract address is not valid');
         }
-        this._contract = IUiPoolDataProviderV3__factory.connect(context.uiPoolDataProviderAddress, context.provider);
-        this.chainId = context.chainId;
+        this._contract = IUiPoolDataProvider__factory.connect(context.uiPoolDataProviderAddress, context.provider);
     }
     /**
      * Get the underlying asset address for each lending pool reserve
      */
-    async getReservesList({ lendingPoolAddressProvider, }) {
+    async getReservesList(lendingPoolAddressProvider) {
         if (!isAddress(lendingPoolAddressProvider)) {
             throw new Error('Lending pool address is not valid');
         }
@@ -43,7 +42,7 @@ export class UiPoolDataProvider {
     /**
      * Get data for each lending pool reserve
      */
-    async getReservesData({ lendingPoolAddressProvider, }) {
+    async getReservesData(lendingPoolAddressProvider) {
         if (!isAddress(lendingPoolAddressProvider)) {
             throw new Error('Lending pool address is not valid');
         }
@@ -52,7 +51,7 @@ export class UiPoolDataProvider {
     /**
      * Get data for each user reserve on the lending pool
      */
-    async getUserReservesData({ lendingPoolAddressProvider, user, }) {
+    async getUserReservesData(lendingPoolAddressProvider, user) {
         if (!isAddress(lendingPoolAddressProvider)) {
             throw new Error('Lending pool address is not valid');
         }
@@ -61,10 +60,10 @@ export class UiPoolDataProvider {
         }
         return this._contract.getUserReservesData(lendingPoolAddressProvider, user);
     }
-    async getReservesHumanized({ lendingPoolAddressProvider, }) {
-        const { 0: reservesRaw, 1: poolBaseCurrencyRaw } = await this.getReservesData({ lendingPoolAddressProvider });
+    async getReservesHumanized(lendingPoolAddressProvider) {
+        const { 0: reservesRaw, 1: poolBaseCurrencyRaw } = await this.getReservesData(lendingPoolAddressProvider);
         const reservesData = reservesRaw.map(reserveRaw => ({
-            id: `${this.chainId}-${reserveRaw.underlyingAsset}-${lendingPoolAddressProvider}`.toLowerCase(),
+            id: (reserveRaw.underlyingAsset + lendingPoolAddressProvider).toLowerCase(),
             underlyingAsset: reserveRaw.underlyingAsset.toLowerCase(),
             name: reserveRaw.name,
             symbol: ammSymbolMap[reserveRaw.underlyingAsset.toLowerCase()]
@@ -96,14 +95,10 @@ export class UiPoolDataProvider {
             stableDebtLastUpdateTimestamp: reserveRaw.stableDebtLastUpdateTimestamp.toNumber(),
             totalScaledVariableDebt: reserveRaw.totalScaledVariableDebt.toString(),
             priceInMarketReferenceCurrency: reserveRaw.priceInMarketReferenceCurrency.toString(),
-            priceOracle: reserveRaw.priceOracle,
             variableRateSlope1: reserveRaw.variableRateSlope1.toString(),
             variableRateSlope2: reserveRaw.variableRateSlope2.toString(),
             stableRateSlope1: reserveRaw.stableRateSlope1.toString(),
             stableRateSlope2: reserveRaw.stableRateSlope2.toString(),
-            baseStableBorrowRate: reserveRaw.baseStableBorrowRate.toString(),
-            baseVariableBorrowRate: reserveRaw.baseVariableBorrowRate.toString(),
-            optimalUsageRatio: reserveRaw.optimalUsageRatio.toString(),
             // new fields
             isPaused: reserveRaw.isPaused,
             debtCeiling: reserveRaw.debtCeiling.toString(),
@@ -114,12 +109,7 @@ export class UiPoolDataProvider {
             eModeLiquidationThreshold: reserveRaw.eModeLiquidationThreshold,
             eModeLiquidationBonus: reserveRaw.eModeLiquidationBonus,
             eModePriceSource: reserveRaw.eModePriceSource.toString(),
-            eModeLabel: reserveRaw.eModeLabel.toString(),
-            borrowableInIsolation: reserveRaw.borrowableInIsolation,
-            accruedToTreasury: reserveRaw.accruedToTreasury.toString(),
-            unbacked: reserveRaw.unbacked.toString(),
-            isolationModeTotalDebt: reserveRaw.isolationModeTotalDebt.toString(),
-            debtCeilingDecimals: reserveRaw.debtCeilingDecimals.toNumber(),
+            eModeLabel: reserveRaw.eModeLabel,
         }));
         const baseCurrencyData = {
             // this is to get the decimals from the unit so 1e18 = string length of 19 - 1 to get the number of 0
@@ -133,21 +123,18 @@ export class UiPoolDataProvider {
             baseCurrencyData,
         };
     }
-    async getUserReservesHumanized({ lendingPoolAddressProvider, user, }) {
-        const { 0: userReservesRaw, 1: userEmodeCategoryId } = await this.getUserReservesData({ lendingPoolAddressProvider, user });
-        return {
-            userReserves: userReservesRaw.map(userReserveRaw => ({
-                id: `${this.chainId}-${user}-${userReserveRaw.underlyingAsset}-${lendingPoolAddressProvider}`.toLowerCase(),
-                underlyingAsset: userReserveRaw.underlyingAsset.toLowerCase(),
-                scaledATokenBalance: userReserveRaw.scaledATokenBalance.toString(),
-                usageAsCollateralEnabledOnUser: userReserveRaw.usageAsCollateralEnabledOnUser,
-                stableBorrowRate: userReserveRaw.stableBorrowRate.toString(),
-                scaledVariableDebt: userReserveRaw.scaledVariableDebt.toString(),
-                principalStableDebt: userReserveRaw.principalStableDebt.toString(),
-                stableBorrowLastUpdateTimestamp: userReserveRaw.stableBorrowLastUpdateTimestamp.toNumber(),
-            })),
+    async getUserReservesHumanized(lendingPoolAddressProvider, user) {
+        const { 0: userReservesRaw, 1: userEmodeCategoryId } = await this.getUserReservesData(lendingPoolAddressProvider, user);
+        return userReservesRaw.map(userReserveRaw => ({
+            underlyingAsset: userReserveRaw.underlyingAsset.toLowerCase(),
+            scaledATokenBalance: userReserveRaw.scaledATokenBalance.toString(),
+            usageAsCollateralEnabledOnUser: userReserveRaw.usageAsCollateralEnabledOnUser,
+            stableBorrowRate: userReserveRaw.stableBorrowRate.toString(),
+            scaledVariableDebt: userReserveRaw.scaledVariableDebt.toString(),
+            principalStableDebt: userReserveRaw.principalStableDebt.toString(),
+            stableBorrowLastUpdateTimestamp: userReserveRaw.stableBorrowLastUpdateTimestamp.toNumber(),
             userEmodeCategoryId,
-        };
+        }));
     }
 }
 //# sourceMappingURL=index.js.map

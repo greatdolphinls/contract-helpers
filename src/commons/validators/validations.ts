@@ -16,7 +16,6 @@ import {
   paramsType,
   isEthAddressArrayMetadataKeyNotEmpty,
   isEthAddressOrENSMetadataKey,
-  isPermitDeadline32Bytes,
 } from './paramValidators';
 
 // export function optionalValidator(
@@ -41,49 +40,6 @@ import {
 
 //   return isParamOptional;
 // }
-
-export function isDeadline32BytesValidator(
-  target: any,
-  propertyName: string,
-  methodArguments: any,
-  isParamOptional?: boolean[],
-): void {
-  const addressParameters: paramsType[] = Reflect.getOwnMetadata(
-    isPermitDeadline32Bytes,
-    target,
-    propertyName,
-  );
-
-  if (addressParameters) {
-    addressParameters.forEach(storedParams => {
-      if (storedParams.field) {
-        if (
-          methodArguments[0][storedParams.field] &&
-          Buffer.byteLength(methodArguments[0][storedParams.field], 'utf8') > 32
-        ) {
-          throw new Error(
-            `Deadline: ${
-              methodArguments[0][storedParams.field]
-            } is bigger than 32 bytes`,
-          );
-        }
-      } else {
-        const isOptional = isParamOptional?.[storedParams.index];
-        if (
-          methodArguments[storedParams.index] &&
-          !isOptional &&
-          Buffer.byteLength(methodArguments[storedParams.index], 'utf8') > 32
-        ) {
-          throw new Error(
-            `Deadline: ${
-              methodArguments[storedParams.index]
-            } is bigger than 32 bytes`,
-          );
-        }
-      }
-    });
-  }
-}
 
 export function isEthAddressValidator(
   target: any,

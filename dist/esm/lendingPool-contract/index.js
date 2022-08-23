@@ -2,12 +2,11 @@ import { __decorate, __metadata, __param } from "tslib";
 import { constants, utils } from 'ethers';
 import BaseService from '../commons/BaseService';
 import { eEthereumTxType, InterestRate, ProtocolAction, } from '../commons/types';
-import { getTxValue, valueToWei, API_ETH_MOCK_ADDRESS, DEFAULT_APPROVE_AMOUNT, SURPLUS, augustusToAmountOffsetFromCalldata, } from '../commons/utils';
+import { getTxValue, valueToWei, API_ETH_MOCK_ADDRESS, DEFAULT_APPROVE_AMOUNT, SURPLUS, } from '../commons/utils';
 import { LPFlashLiquidationValidator, LPRepayWithCollateralValidator, LPSwapCollateralValidator, LPValidator, } from '../commons/validators/methodValidators';
 import { isEthAddress, isPositiveAmount, isPositiveOrMinusOneAmount, } from '../commons/validators/paramValidators';
 import { ERC20Service } from '../erc20-contract';
 import { augustusFromAmountOffsetFromCalldata, LiquiditySwapAdapterService, } from '../paraswap-liquiditySwapAdapter-contract';
-import { ParaswapRepayWithCollateral, } from '../paraswap-repayWithCollateralAdapter-contract';
 import { RepayWithCollateralAdapterService, } from '../repayWithCollateralAdapter-contract';
 import { SynthetixService } from '../synthetix-contract';
 import { WETHGatewayService, } from '../wethgateway-contract';
@@ -44,8 +43,6 @@ export class LendingPool extends BaseService {
         this.liquiditySwapAdapterService = new LiquiditySwapAdapterService(provider, SWAP_COLLATERAL_ADAPTER);
         this.repayWithCollateralAdapterService =
             new RepayWithCollateralAdapterService(provider, REPAY_WITH_COLLATERAL_ADAPTER);
-        this.paraswapRepayWithCollateralAdapterService =
-            new ParaswapRepayWithCollateral(provider, REPAY_WITH_COLLATERAL_ADAPTER);
     }
     async deposit({ user, reserve, amount, onBehalfOf, referralCode }) {
         if (reserve.toLowerCase() === API_ETH_MOCK_ADDRESS.toLowerCase()) {
@@ -425,95 +422,6 @@ export class LendingPool extends BaseService {
         txs.push(swapAndRepayTx);
         return txs;
     }
-    async paraswapRepayWithCollateral({ user, fromAsset, fromAToken, assetToRepay, repayWithAmount, repayAmount, permitSignature, repayAllDebt, rateMode, onBehalfOf, referralCode, flash, swapAndRepayCallData, augustus, }) {
-        const txs = [];
-        const permitParams = permitSignature !== null && permitSignature !== void 0 ? permitSignature : {
-            amount: '0',
-            deadline: '0',
-            v: 0,
-            r: '0x0000000000000000000000000000000000000000000000000000000000000000',
-            s: '0x0000000000000000000000000000000000000000000000000000000000000000',
-        };
-        const approved = await this.erc20Service.isApproved({
-            token: fromAToken,
-            user,
-            spender: this.repayWithCollateralAddress,
-            amount: repayWithAmount,
-        });
-        if (!approved) {
-            const approveTx = this.erc20Service.approve({
-                user,
-                token: fromAToken,
-                spender: this.repayWithCollateralAddress,
-                amount: constants.MaxUint256.toString(),
-            });
-            txs.push(approveTx);
-        }
-        const fromDecimals = await this.erc20Service.decimalsOf(fromAsset);
-        const convertedRepayWithAmount = valueToWei(repayWithAmount, fromDecimals);
-        const repayWithAmountWithSurplus = (Number(repayWithAmount) +
-            (Number(repayWithAmount) * Number(SURPLUS)) / 100).toString();
-        const convertedRepayWithAmountWithSurplus = valueToWei(repayWithAmountWithSurplus, fromDecimals);
-        const decimals = await this.erc20Service.decimalsOf(assetToRepay);
-        const convertedRepayAmount = valueToWei(repayAmount, decimals);
-        const numericInterestRate = rateMode === InterestRate.Stable ? 1 : 2;
-        if (flash) {
-            const callDataEncoded = utils.defaultAbiCoder.encode(['bytes', 'address'], [swapAndRepayCallData, augustus]);
-            const params = utils.defaultAbiCoder.encode([
-                'address',
-                'uint256',
-                'uint256',
-                'uint256',
-                'bytes',
-                'uint256',
-                'uint256',
-                'uint8',
-                'bytes32',
-                'bytes32',
-            ], [
-                assetToRepay,
-                convertedRepayAmount,
-                repayAllDebt
-                    ? augustusToAmountOffsetFromCalldata(swapAndRepayCallData)
-                    : 0,
-                numericInterestRate,
-                callDataEncoded,
-                permitParams.amount,
-                permitParams.deadline,
-                permitParams.v,
-                permitParams.r,
-                permitParams.s,
-            ]);
-            const poolContract = this.getContractInstance(this.lendingPoolAddress);
-            const txCallback = this.generateTxCallback({
-                rawTxMethod: async () => poolContract.populateTransaction.flashLoan(this.repayWithCollateralAddress, [fromAsset], repayAllDebt
-                    ? [convertedRepayWithAmountWithSurplus]
-                    : [convertedRepayWithAmount], [0], // interest rate mode to NONE for flashloan to not open debt
-                onBehalfOf !== null && onBehalfOf !== void 0 ? onBehalfOf : user, params, referralCode !== null && referralCode !== void 0 ? referralCode : '0'),
-                from: user,
-            });
-            txs.push({
-                tx: txCallback,
-                txType: eEthereumTxType.DLP_ACTION,
-                gas: this.generateTxPriceEstimation(txs, txCallback, ProtocolAction.repayCollateral),
-            });
-            return txs;
-        }
-        const swapAndRepayTx = this.paraswapRepayWithCollateralAdapterService.swapAndRepay({
-            user,
-            collateralAsset: fromAsset,
-            debtAsset: assetToRepay,
-            collateralAmount: convertedRepayWithAmount,
-            debtRepayAmount: convertedRepayAmount,
-            debtRateMode: rateMode,
-            permitParams,
-            repayAll: repayAllDebt !== null && repayAllDebt !== void 0 ? repayAllDebt : false,
-            swapAndRepayCallData,
-            augustus,
-        }, txs);
-        txs.push(swapAndRepayTx);
-        return txs;
-    }
     async flashLiquidation({ user, collateralAsset, borrowedAsset, debtTokenCover, liquidateAll, initiator, useEthPath, }) {
         const addSurplus = (amount) => {
             return (Number(amount) +
@@ -644,20 +552,6 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], LendingPool.prototype, "repayWithCollateral", null);
-__decorate([
-    LPRepayWithCollateralValidator,
-    __param(0, isEthAddress('user')),
-    __param(0, isEthAddress('fromAsset')),
-    __param(0, isEthAddress('fromAToken')),
-    __param(0, isEthAddress('assetToRepay')),
-    __param(0, isEthAddress('onBehalfOf')),
-    __param(0, isPositiveAmount('repayWithAmount')),
-    __param(0, isPositiveAmount('repayAmount')),
-    __param(0, isEthAddress('augustus')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", Promise)
-], LendingPool.prototype, "paraswapRepayWithCollateral", null);
 __decorate([
     LPFlashLiquidationValidator,
     __param(0, isEthAddress('user')),

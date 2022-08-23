@@ -2,7 +2,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import 'reflect-metadata';
 export const isEthAddressMetadataKey = Symbol('ethAddress');
-export const isPermitDeadline32Bytes = Symbol('deadline32Bytes');
 export const isEthAddressArrayMetadataKey = Symbol('ethAddressArray');
 export const isEthAddressOrENSMetadataKey = Symbol('ethOrENSAddress');
 export const isPositiveMetadataKey = Symbol('isPositive');
@@ -10,17 +9,6 @@ export const isPositiveOrMinusOneMetadataKey = Symbol('isPositiveOrMinusOne');
 export const is0OrPositiveMetadataKey = Symbol('is0OrPositiveMetadataKey');
 export const optionalMetadataKey = Symbol('Optional');
 export const isEthAddressArrayMetadataKeyNotEmpty = Symbol('isEthAddressArrayMetadataKeyNotEmpty');
-export function isDeadline32Bytes(field) {
-    return function (target, propertyKey, parameterIndex) {
-        const existingPossibleAddresses = Reflect.getOwnMetadata(isPermitDeadline32Bytes, target, propertyKey) ||
-            [];
-        existingPossibleAddresses.push({
-            index: parameterIndex,
-            field,
-        });
-        Reflect.defineMetadata(isPermitDeadline32Bytes, existingPossibleAddresses, target, propertyKey);
-    };
-}
 export function isEthAddress(field) {
     return function (target, propertyKey, parameterIndex) {
         const existingPossibleAddresses = Reflect.getOwnMetadata(isEthAddressMetadataKey, target, propertyKey) ||

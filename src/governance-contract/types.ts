@@ -28,13 +28,11 @@ export type GovExecuteType = {
   user: tEthereumAddress;
   proposalId: number;
 };
-
 export type GovSubmitVoteType = {
   user: tEthereumAddress;
   proposalId: number;
   support: boolean;
 };
-
 export type GovSubmitVoteSignType = {
   user: tEthereumAddress;
   proposalId: number;
@@ -90,37 +88,11 @@ export enum ProposalState {
   Executed = 'Executed',
 }
 
-export type ProposalIpfs = {
+export type Proposal = {
   id: number;
   title: string;
   description: string;
   shortDescription: string;
-  creator: tEthereumAddress;
-  executor: tEthereumAddress;
-  targets: tEthereumAddress[];
-  values: string[];
-  signatures: string[];
-  calldatas: string[];
-  withDelegatecalls: boolean[];
-  startBlock: number;
-  endBlock: number;
-  executionTime: string;
-  executionTimeWithGracePeriod: string;
-  forVotes: string;
-  againstVotes: string;
-  executed: boolean;
-  canceled: boolean;
-  strategy: string;
-  ipfsHash: string;
-  state: ProposalState;
-  minimumQuorum: string;
-  minimumDiff: string;
-  proposalCreated: number;
-  totalVotingSupply: string;
-};
-
-export type Proposal = {
-  id: number;
   creator: tEthereumAddress;
   executor: tEthereumAddress;
   targets: tEthereumAddress[];
@@ -130,8 +102,8 @@ export type Proposal = {
   withDelegatecalls: boolean[];
   startBlock: number;
   endBlock: number;
-  executionTime: number;
-  executionTimeWithGracePeriod: number;
+  executionTime: string;
+  executionTimeWithGracePeriod: string;
   forVotes: string;
   againstVotes: string;
   executed: boolean;
@@ -169,6 +141,13 @@ export type ProposalRPC = {
   strategy: string;
   ipfsHash: string;
   proposalState: number;
+};
+
+export type ProposalMetadata = {
+  title: string;
+  description: string;
+  shortDescription: string;
+  ipfsHash: string;
 };
 
 export type Power = {

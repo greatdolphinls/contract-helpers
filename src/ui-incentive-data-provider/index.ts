@@ -49,7 +49,6 @@ export interface UiIncentiveDataProviderInterface {
 export interface UiIncentiveDataProviderContext {
   incentiveDataProviderAddress: string;
   provider: providers.Provider;
-  chainId: number;
 }
 
 export interface FeedResultSuccessful {
@@ -77,8 +76,6 @@ export class UiIncentiveDataProvider
 
   private readonly _context: UiIncentiveDataProviderContext;
 
-  private readonly chainId: number;
-
   /**
    * Constructor
    * @param context The ui incentive data provider context
@@ -96,8 +93,6 @@ export class UiIncentiveDataProvider
       context.incentiveDataProviderAddress,
       context.provider,
     );
-
-    this.chainId = context.chainId;
   }
 
   /**
@@ -143,7 +138,6 @@ export class UiIncentiveDataProvider
     );
 
     return response.map(r => ({
-      id: `${this.chainId}-${r.underlyingAsset}-${lendingPoolAddressProvider}`.toLowerCase(),
       underlyingAsset: r.underlyingAsset.toLowerCase(),
       aIncentiveData: this._formatIncentiveData(r.aIncentiveData),
       vIncentiveData: this._formatIncentiveData(r.vIncentiveData),
@@ -161,7 +155,6 @@ export class UiIncentiveDataProvider
     );
 
     return response.map(r => ({
-      id: `${this.chainId}-${user}-${r.underlyingAsset}-${lendingPoolAddressProvider}`.toLowerCase(),
       underlyingAsset: r.underlyingAsset.toLowerCase(),
       aTokenIncentivesUserData: this._formatUserIncentiveData(
         r.aTokenIncentivesUserData,

@@ -1,4 +1,4 @@
-import { BytesLike, Signature, splitSignature } from '@ethersproject/bytes';
+import { BytesLike, Signature } from '@ethersproject/bytes';
 import { BigNumberish, constants, providers, utils } from 'ethers';
 import BaseService from '../commons/BaseService';
 import {
@@ -11,7 +11,6 @@ import {
 } from '../commons/types';
 import {
   API_ETH_MOCK_ADDRESS,
-  augustusToAmountOffsetFromCalldata,
   DEFAULT_APPROVE_AMOUNT,
   getTxValue,
   SURPLUS,
@@ -29,7 +28,6 @@ import {
   isPositiveAmount,
   isPositiveOrMinusOneAmount,
 } from '../commons/validators/paramValidators';
-import { ERC20_2612Service, ERC20_2612Interface } from '../erc20-2612';
 import { ERC20Service, IERC20ServiceInterface } from '../erc20-contract';
 import {
   augustusFromAmountOffsetFromCalldata,
@@ -37,23 +35,22 @@ import {
   LiquiditySwapAdapterService,
 } from '../paraswap-liquiditySwapAdapter-contract';
 import {
-  ParaswapRepayWithCollateral,
-  ParaswapRepayWithCollateralInterface,
-} from '../paraswap-repayWithCollateralAdapter-contract';
+  RepayWithCollateralAdapterInterface,
+  RepayWithCollateralAdapterService,
+} from '../repayWithCollateralAdapter-contract';
 import { SynthetixInterface, SynthetixService } from '../synthetix-contract';
-import { L2Pool, L2PoolInterface } from '../v3-pool-rollups';
 import {
   WETHGatewayInterface,
   WETHGatewayService,
 } from '../wethgateway-contract';
 import {
   LPBorrowParamsType,
-  LPSupplyParamsType,
+  LPDepositParamsType,
   LPFlashLiquidation,
   LPLiquidationCall,
-  LPParaswapRepayWithCollateral,
   LPRepayParamsType,
   LPRepayWithATokensType,
+  LPRepayWithCollateral,
   LPRepayWithPermitParamsType,
   LPSetUsageAsCollateral,
   LPSetUserEModeType,
@@ -64,14 +61,14 @@ import {
   LPWithdrawParamsType,
 } from './lendingPoolTypes';
 import { IPool } from './typechain/IPool';
-import { IPool__factory } from './typechain/IPool__factory';
+import { IPoolFactory } from './typechain/IPoolFactory';
 
 export interface PoolInterface {
   deposit: (
-    args: LPSupplyParamsType,
+    args: LPDepositParamsType,
   ) => Promise<EthereumTransactionTypeExtended[]>;
   supply: (
-    args: LPSupplyParamsType,
+    args: LPDepositParamsType,
   ) => Promise<EthereumTransactionTypeExtended[]>;
   signERC20Approval: (args: LPSignERC20ApprovalType) => Promise<string>;
   supplyWithPermit: (
@@ -86,17 +83,17 @@ export interface PoolInterface {
   repay: (
     args: LPRepayParamsType,
   ) => Promise<EthereumTransactionTypeExtended[]>;
-  repayWithPermit: (
-    args: LPRepayWithPermitParamsType,
-  ) => Promise<EthereumTransactionTypeExtended[]>;
   swapBorrowRateMode: (
     args: LPSwapBorrowRateMode,
-  ) => Promise<EthereumTransactionTypeExtended[]>;
+  ) => EthereumTransactionTypeExtended[];
   setUsageAsCollateral: (
     args: LPSetUsageAsCollateral,
-  ) => Promise<EthereumTransactionTypeExtended[]>;
+  ) => EthereumTransactionTypeExtended[];
   swapCollateral: (
     args: LPSwapCollateral,
+  ) => Promise<EthereumTransactionTypeExtended[]>;
+  repayWithCollateral: (
+    args: LPRepayWithCollateral,
   ) => Promise<EthereumTransactionTypeExtended[]>;
   flashLiquidation: (
     args: LPFlashLiquidation,
@@ -104,13 +101,7 @@ export interface PoolInterface {
   repayWithATokens: (
     args: LPRepayWithATokensType,
   ) => Promise<EthereumTransactionTypeExtended[]>;
-  liquidationCall: (
-    args: LPLiquidationCall,
-  ) => Promise<EthereumTransactionTypeExtended[]>;
   setUserEMode: (args: LPSetUserEModeType) => EthereumTransactionTypeExtended[];
-  paraswapRepayWithCollateral(
-    args: LPParaswapRepayWithCollateral,
-  ): Promise<EthereumTransactionTypeExtended[]>;
 }
 
 export type LendingPoolMarketConfigV3 = {
@@ -119,8 +110,6 @@ export type LendingPoolMarketConfigV3 = {
   FLASH_LIQUIDATION_ADAPTER?: tEthereumAddress;
   REPAY_WITH_COLLATERAL_ADAPTER?: tEthereumAddress;
   SWAP_COLLATERAL_ADAPTER?: tEthereumAddress;
-  L2_ENCODER?: tEthereumAddress;
-  L2_POOL?: tEthereumAddress;
 };
 
 const buildParaSwapLiquiditySwapParams = (
@@ -166,9 +155,7 @@ export class Pool extends BaseService<IPool> implements PoolInterface {
 
   readonly liquiditySwapAdapterService: LiquiditySwapAdapterInterface;
 
-  readonly paraswapRepayWithCollateralAdapterService: ParaswapRepayWithCollateralInterface;
-
-  readonly erc20_2612Service: ERC20_2612Interface;
+  readonly repayWithCollateralAdapterService: RepayWithCollateralAdapterInterface;
 
   readonly flashLiquidationAddress: string;
 
@@ -176,17 +163,11 @@ export class Pool extends BaseService<IPool> implements PoolInterface {
 
   readonly repayWithCollateralAddress: string;
 
-  readonly l2EncoderAddress: string;
-
-  readonly l2PoolAddress: string;
-
-  readonly l2PoolService: L2PoolInterface;
-
   constructor(
     provider: providers.Provider,
     lendingPoolConfig?: LendingPoolMarketConfigV3,
   ) {
-    super(provider, IPool__factory);
+    super(provider, IPoolFactory);
 
     const {
       POOL,
@@ -194,17 +175,14 @@ export class Pool extends BaseService<IPool> implements PoolInterface {
       REPAY_WITH_COLLATERAL_ADAPTER,
       SWAP_COLLATERAL_ADAPTER,
       WETH_GATEWAY,
-      L2_ENCODER,
     } = lendingPoolConfig ?? {};
 
     this.poolAddress = POOL ?? '';
     this.flashLiquidationAddress = FLASH_LIQUIDATION_ADAPTER ?? '';
     this.swapCollateralAddress = SWAP_COLLATERAL_ADAPTER ?? '';
     this.repayWithCollateralAddress = REPAY_WITH_COLLATERAL_ADAPTER ?? '';
-    this.l2EncoderAddress = L2_ENCODER ?? '';
 
     // initialize services
-    this.erc20_2612Service = new ERC20_2612Service(provider);
     this.erc20Service = new ERC20Service(provider);
     this.synthetixService = new SynthetixService(provider);
     this.wethGatewayService = new WETHGatewayService(
@@ -216,14 +194,11 @@ export class Pool extends BaseService<IPool> implements PoolInterface {
       provider,
       SWAP_COLLATERAL_ADAPTER,
     );
-
-    this.paraswapRepayWithCollateralAdapterService =
-      new ParaswapRepayWithCollateral(provider, REPAY_WITH_COLLATERAL_ADAPTER);
-
-    this.l2PoolService = new L2Pool(provider, {
-      l2PoolAddress: this.poolAddress,
-      encoderAddress: this.l2EncoderAddress,
-    });
+    this.repayWithCollateralAdapterService =
+      new RepayWithCollateralAdapterService(
+        provider,
+        REPAY_WITH_COLLATERAL_ADAPTER,
+      );
   }
 
   @LPValidatorV3
@@ -232,7 +207,7 @@ export class Pool extends BaseService<IPool> implements PoolInterface {
     @isEthAddress('reserve')
     @isPositiveAmount('amount')
     @isEthAddress('onBehalfOf')
-    { user, reserve, amount, onBehalfOf, referralCode }: LPSupplyParamsType,
+    { user, reserve, amount, onBehalfOf, referralCode }: LPDepositParamsType,
   ): Promise<EthereumTransactionTypeExtended[]> {
     if (reserve.toLowerCase() === API_ETH_MOCK_ADDRESS.toLowerCase()) {
       return this.wethGatewayService.depositETH({
@@ -299,7 +274,7 @@ export class Pool extends BaseService<IPool> implements PoolInterface {
       gas: this.generateTxPriceEstimation(
         txs,
         txCallback,
-        ProtocolAction.supply,
+        ProtocolAction.deposit,
       ),
     });
 
@@ -312,14 +287,7 @@ export class Pool extends BaseService<IPool> implements PoolInterface {
     @isEthAddress('reserve')
     @isPositiveAmount('amount')
     @isEthAddress('onBehalfOf')
-    {
-      user,
-      reserve,
-      amount,
-      onBehalfOf,
-      referralCode,
-      useOptimizedPath,
-    }: LPSupplyParamsType,
+    { user, reserve, amount, onBehalfOf, referralCode }: LPDepositParamsType,
   ): Promise<EthereumTransactionTypeExtended[]> {
     if (reserve.toLowerCase() === API_ETH_MOCK_ADDRESS.toLowerCase()) {
       return this.wethGatewayService.depositETH({
@@ -368,17 +336,9 @@ export class Pool extends BaseService<IPool> implements PoolInterface {
       this.poolAddress,
     );
 
-    // use optimized path
-    if (useOptimizedPath) {
-      return this.l2PoolService.supply(
-        { user, reserve, amount: convertedAmount, referralCode },
-        txs,
-      );
-    }
-
     const txCallback: () => Promise<transactionType> = this.generateTxCallback({
       rawTxMethod: async () =>
-        lendingPoolContract.populateTransaction.supply(
+        lendingPoolContract.populateTransaction.deposit(
           reserve,
           convertedAmount,
           onBehalfOf ?? user,
@@ -394,7 +354,7 @@ export class Pool extends BaseService<IPool> implements PoolInterface {
       gas: this.generateTxPriceEstimation(
         txs,
         txCallback,
-        ProtocolAction.supply,
+        ProtocolAction.deposit,
       ),
     });
 
@@ -406,38 +366,15 @@ export class Pool extends BaseService<IPool> implements PoolInterface {
   public async signERC20Approval(
     @isEthAddress('user')
     @isEthAddress('reserve')
-    @isPositiveOrMinusOneAmount('amount')
-    { user, reserve, amount, deadline }: LPSignERC20ApprovalType,
+    @isPositiveAmount('amount')
+    { user, reserve, amount }: LPSignERC20ApprovalType,
   ): Promise<string> {
-    const { getTokenData, isApproved } = this.erc20Service;
+    const { getTokenData } = this.erc20Service;
     const { name, decimals } = await getTokenData(reserve);
-
-    const convertedAmount =
-      amount === '-1'
-        ? constants.MaxUint256.toString()
-        : valueToWei(amount, decimals);
-
-    const approved = await isApproved({
-      token: reserve,
-      user,
-      spender: this.poolAddress,
-      amount,
-    });
-
-    if (approved) {
-      return '';
-    }
+    const convertedAmount: string = valueToWei(amount, decimals);
 
     const { chainId } = await this.provider.getNetwork();
-
-    const nonce = await this.erc20_2612Service.getNonce({
-      token: reserve,
-      owner: user,
-    });
-
-    if (nonce === null) {
-      return '';
-    }
+    const nonce = await this.provider.getTransactionCount(user);
 
     const typeData = {
       types: {
@@ -467,9 +404,10 @@ export class Pool extends BaseService<IPool> implements PoolInterface {
         spender: this.poolAddress,
         value: convertedAmount,
         nonce,
-        deadline,
+        deadline: constants.MaxUint256.toString(),
       },
     };
+
     return JSON.stringify(typeData);
   }
 
@@ -487,8 +425,6 @@ export class Pool extends BaseService<IPool> implements PoolInterface {
       amount,
       referralCode,
       signature,
-      useOptimizedPath,
-      deadline,
     }: LPSupplyWithPermitType,
   ): Promise<EthereumTransactionTypeExtended[]> {
     const txs: EthereumTransactionTypeExtended[] = [];
@@ -496,8 +432,8 @@ export class Pool extends BaseService<IPool> implements PoolInterface {
     const poolContract: IPool = this.getContractInstance(this.poolAddress);
     const stakedTokenDecimals: number = await decimalsOf(reserve);
     const convertedAmount: string = valueToWei(amount, stakedTokenDecimals);
-    // const sig: Signature = utils.splitSignature(signature);
-    const sig: Signature = splitSignature(signature);
+    const sig: Signature = utils.splitSignature(signature);
+
     const fundsAvailable: boolean =
       await this.synthetixService.synthetixValidation({
         user,
@@ -508,22 +444,6 @@ export class Pool extends BaseService<IPool> implements PoolInterface {
       throw new Error('Not enough funds to execute operation');
     }
 
-    if (useOptimizedPath) {
-      return this.l2PoolService.supplyWithPermit(
-        {
-          user,
-          reserve,
-          amount: convertedAmount,
-          referralCode,
-          deadline,
-          permitV: sig.v,
-          permitR: sig.r,
-          permitS: sig.s,
-        },
-        txs,
-      );
-    }
-
     const txCallback: () => Promise<transactionType> = this.generateTxCallback({
       rawTxMethod: async () =>
         poolContract.populateTransaction.supplyWithPermit(
@@ -531,7 +451,7 @@ export class Pool extends BaseService<IPool> implements PoolInterface {
           convertedAmount,
           onBehalfOf ?? user,
           referralCode ?? 0,
-          deadline,
+          constants.MaxUint256.toString(),
           sig.v,
           sig.r,
           sig.s,
@@ -542,7 +462,11 @@ export class Pool extends BaseService<IPool> implements PoolInterface {
     txs.push({
       tx: txCallback,
       txType: eEthereumTxType.DLP_ACTION,
-      gas: this.generateTxPriceEstimation(txs, txCallback),
+      gas: this.generateTxPriceEstimation(
+        txs,
+        txCallback,
+        ProtocolAction.deposit,
+      ),
     });
 
     return txs;
@@ -555,14 +479,7 @@ export class Pool extends BaseService<IPool> implements PoolInterface {
     @isPositiveOrMinusOneAmount('amount')
     @isEthAddress('onBehalfOf')
     @isEthAddress('aTokenAddress')
-    {
-      user,
-      reserve,
-      amount,
-      onBehalfOf,
-      aTokenAddress,
-      useOptimizedPath,
-    }: LPWithdrawParamsType,
+    { user, reserve, amount, onBehalfOf, aTokenAddress }: LPWithdrawParamsType,
   ): Promise<EthereumTransactionTypeExtended[]> {
     if (reserve.toLowerCase() === API_ETH_MOCK_ADDRESS.toLowerCase()) {
       if (!aTokenAddress) {
@@ -587,14 +504,6 @@ export class Pool extends BaseService<IPool> implements PoolInterface {
       amount === '-1'
         ? constants.MaxUint256.toString()
         : valueToWei(amount, decimals);
-
-    if (useOptimizedPath) {
-      return this.l2PoolService.withdraw({
-        user,
-        reserve,
-        amount: convertedAmount,
-      });
-    }
 
     const poolContract: IPool = this.getContractInstance(this.poolAddress);
 
@@ -637,7 +546,6 @@ export class Pool extends BaseService<IPool> implements PoolInterface {
       debtTokenAddress,
       onBehalfOf,
       referralCode,
-      useOptimizedPath,
     }: LPBorrowParamsType,
   ): Promise<EthereumTransactionTypeExtended[]> {
     if (reserve.toLowerCase() === API_ETH_MOCK_ADDRESS.toLowerCase()) {
@@ -662,16 +570,6 @@ export class Pool extends BaseService<IPool> implements PoolInterface {
     const formatAmount: string = valueToWei(amount, reserveDecimals);
 
     const numericRateMode = interestRateMode === InterestRate.Variable ? 2 : 1;
-
-    if (useOptimizedPath) {
-      return this.l2PoolService.borrow({
-        user,
-        reserve,
-        amount: formatAmount,
-        numericRateMode,
-        referralCode,
-      });
-    }
 
     const poolContract = this.getContractInstance(this.poolAddress);
 
@@ -702,14 +600,7 @@ export class Pool extends BaseService<IPool> implements PoolInterface {
     @isEthAddress('reserve')
     @isPositiveOrMinusOneAmount('amount')
     @isEthAddress('onBehalfOf')
-    {
-      user,
-      reserve,
-      amount,
-      interestRateMode,
-      onBehalfOf,
-      useOptimizedPath,
-    }: LPRepayParamsType,
+    { user, reserve, amount, interestRateMode, onBehalfOf }: LPRepayParamsType,
   ): Promise<EthereumTransactionTypeExtended[]> {
     if (reserve.toLowerCase() === API_ETH_MOCK_ADDRESS.toLowerCase()) {
       return this.wethGatewayService.repayETH({
@@ -764,18 +655,6 @@ export class Pool extends BaseService<IPool> implements PoolInterface {
       txs.push(approveTx);
     }
 
-    if (useOptimizedPath) {
-      return this.l2PoolService.repay(
-        {
-          user,
-          reserve,
-          amount: convertedAmount,
-          numericRateMode,
-        },
-        txs,
-      );
-    }
-
     const txCallback: () => Promise<transactionType> = this.generateTxCallback({
       rawTxMethod: async () =>
         populateTransaction.repay(
@@ -814,8 +693,6 @@ export class Pool extends BaseService<IPool> implements PoolInterface {
       interestRateMode,
       onBehalfOf,
       signature,
-      useOptimizedPath,
-      deadline,
     }: LPRepayWithPermitParamsType,
   ): Promise<EthereumTransactionTypeExtended[]> {
     const txs: EthereumTransactionTypeExtended[] = [];
@@ -844,22 +721,6 @@ export class Pool extends BaseService<IPool> implements PoolInterface {
       }
     }
 
-    if (useOptimizedPath) {
-      return this.l2PoolService.repayWithPermit(
-        {
-          user,
-          reserve,
-          amount: convertedAmount,
-          numericRateMode,
-          deadline,
-          permitR: sig.r,
-          permitS: sig.s,
-          permitV: sig.v,
-        },
-        txs,
-      );
-    }
-
     const txCallback: () => Promise<transactionType> = this.generateTxCallback({
       rawTxMethod: async () =>
         populateTransaction.repayWithPermit(
@@ -867,7 +728,7 @@ export class Pool extends BaseService<IPool> implements PoolInterface {
           convertedAmount,
           numericRateMode,
           onBehalfOf ?? user,
-          deadline,
+          constants.MaxUint256.toString(),
           sig.v,
           sig.r,
           sig.s,
@@ -890,20 +751,12 @@ export class Pool extends BaseService<IPool> implements PoolInterface {
   }
 
   @LPValidatorV3
-  public async swapBorrowRateMode(
+  public swapBorrowRateMode(
     @isEthAddress('user')
     @isEthAddress('reserve')
-    { user, reserve, interestRateMode, useOptimizedPath }: LPSwapBorrowRateMode,
-  ): Promise<EthereumTransactionTypeExtended[]> {
+    { user, reserve, interestRateMode }: LPSwapBorrowRateMode,
+  ): EthereumTransactionTypeExtended[] {
     const numericRateMode = interestRateMode === InterestRate.Variable ? 2 : 1;
-
-    if (useOptimizedPath) {
-      return this.l2PoolService.swapBorrowRateMode({
-        user,
-        reserve,
-        numericRateMode,
-      });
-    }
 
     const poolContract: IPool = this.getContractInstance(this.poolAddress);
     const txCallback: () => Promise<transactionType> = this.generateTxCallback({
@@ -925,25 +778,12 @@ export class Pool extends BaseService<IPool> implements PoolInterface {
   }
 
   @LPValidatorV3
-  public async setUsageAsCollateral(
+  public setUsageAsCollateral(
     @isEthAddress('user')
     @isEthAddress('reserve')
-    {
-      user,
-      reserve,
-      usageAsCollateral,
-      useOptimizedPath,
-    }: LPSetUsageAsCollateral,
-  ): Promise<EthereumTransactionTypeExtended[]> {
+    { user, reserve, usageAsCollateral }: LPSetUsageAsCollateral,
+  ): EthereumTransactionTypeExtended[] {
     const poolContract: IPool = this.getContractInstance(this.poolAddress);
-
-    if (useOptimizedPath) {
-      return this.l2PoolService.setUserUseReserveAsCollateral({
-        user,
-        reserve,
-        usageAsCollateral,
-      });
-    }
 
     const txCallback: () => Promise<transactionType> = this.generateTxCallback({
       rawTxMethod: async () =>
@@ -978,7 +818,6 @@ export class Pool extends BaseService<IPool> implements PoolInterface {
       purchaseAmount,
       getAToken,
       liquidateAll,
-      useOptimizedPath,
     }: LPLiquidationCall,
   ): Promise<EthereumTransactionTypeExtended[]> {
     const txs: EthereumTransactionTypeExtended[] = [];
@@ -1007,20 +846,6 @@ export class Pool extends BaseService<IPool> implements PoolInterface {
     if (!liquidateAll) {
       const reserveDecimals = await decimalsOf(debtReserve);
       convertedAmount = valueToWei(purchaseAmount, reserveDecimals);
-    }
-
-    if (useOptimizedPath) {
-      return this.l2PoolService.liquidationCall(
-        {
-          liquidator,
-          liquidatedUser,
-          debtReserve,
-          collateralReserve,
-          debtToCover: convertedAmount,
-          getAToken,
-        },
-        txs,
-      );
     }
 
     const poolContract = this.getContractInstance(this.poolAddress);
@@ -1057,6 +882,7 @@ export class Pool extends BaseService<IPool> implements PoolInterface {
     @isEthAddress('fromAsset')
     @isEthAddress('fromAToken')
     @isEthAddress('toAsset')
+    @isEthAddress('onBehalfOf')
     @isEthAddress('augustus')
     @isPositiveAmount('fromAmount')
     @isPositiveAmount('minToAmount')
@@ -1070,6 +896,7 @@ export class Pool extends BaseService<IPool> implements PoolInterface {
       minToAmount,
       permitSignature,
       swapAll,
+      onBehalfOf,
       referralCode,
       augustus,
       swapCallData,
@@ -1146,10 +973,12 @@ export class Pool extends BaseService<IPool> implements PoolInterface {
       const txCallback: () => Promise<transactionType> =
         this.generateTxCallback({
           rawTxMethod: async () =>
-            poolContract.populateTransaction.flashLoanSimple(
+            poolContract.populateTransaction.flashLoan(
               this.swapCollateralAddress,
-              fromAsset,
-              swapAll ? convertedAmountWithSurplus : convertedAmount,
+              [fromAsset],
+              swapAll ? [convertedAmountWithSurplus] : [convertedAmount],
+              [0], // interest rate mode to NONE for flashloan to not open debt
+              onBehalfOf ?? user,
               params,
               referralCode ?? '0',
             ),
@@ -1190,14 +1019,14 @@ export class Pool extends BaseService<IPool> implements PoolInterface {
   }
 
   @LPRepayWithCollateralValidatorV3
-  public async paraswapRepayWithCollateral(
+  public async repayWithCollateral(
     @isEthAddress('user')
     @isEthAddress('fromAsset')
     @isEthAddress('fromAToken')
     @isEthAddress('assetToRepay')
+    @isEthAddress('onBehalfOf')
     @isPositiveAmount('repayWithAmount')
     @isPositiveAmount('repayAmount')
-    @isEthAddress('augustus')
     {
       user,
       fromAsset,
@@ -1208,11 +1037,11 @@ export class Pool extends BaseService<IPool> implements PoolInterface {
       permitSignature,
       repayAllDebt,
       rateMode,
+      onBehalfOf,
       referralCode,
       flash,
-      swapAndRepayCallData,
-      augustus,
-    }: LPParaswapRepayWithCollateral,
+      useEthPath,
+    }: LPRepayWithCollateral,
   ): Promise<EthereumTransactionTypeExtended[]> {
     const txs: EthereumTransactionTypeExtended[] = [];
 
@@ -1249,53 +1078,41 @@ export class Pool extends BaseService<IPool> implements PoolInterface {
       fromDecimals,
     );
 
-    const repayWithAmountWithSurplus: string = (
-      Number(repayWithAmount) +
-      (Number(repayWithAmount) * Number(SURPLUS)) / 100
+    const repayAmountWithSurplus: string = (
+      Number(repayAmount) +
+      (Number(repayAmount) * Number(SURPLUS)) / 100
     ).toString();
 
-    const convertedRepayWithAmountWithSurplus: string = valueToWei(
-      repayWithAmountWithSurplus,
-      fromDecimals,
-    );
-
     const decimals: number = await this.erc20Service.decimalsOf(assetToRepay);
-    const convertedRepayAmount: string = valueToWei(repayAmount, decimals);
+    const convertedRepayAmount: string = repayAllDebt
+      ? valueToWei(repayAmountWithSurplus, decimals)
+      : valueToWei(repayAmount, decimals);
 
     const numericInterestRate = rateMode === InterestRate.Stable ? 1 : 2;
 
     if (flash) {
-      const callDataEncoded = utils.defaultAbiCoder.encode(
-        ['bytes', 'address'],
-        [swapAndRepayCallData, augustus],
-      );
-
       const params: string = utils.defaultAbiCoder.encode(
         [
           'address',
           'uint256',
           'uint256',
           'uint256',
-          'bytes',
-          'uint256',
           'uint256',
           'uint8',
           'bytes32',
           'bytes32',
+          'bool',
         ],
         [
-          assetToRepay,
-          convertedRepayAmount,
-          repayAllDebt
-            ? augustusToAmountOffsetFromCalldata(swapAndRepayCallData as string)
-            : 0,
+          fromAsset,
+          convertedRepayWithAmount,
           numericInterestRate,
-          callDataEncoded,
           permitParams.amount,
           permitParams.deadline,
           permitParams.v,
           permitParams.r,
           permitParams.s,
+          useEthPath ?? false,
         ],
       );
 
@@ -1304,12 +1121,12 @@ export class Pool extends BaseService<IPool> implements PoolInterface {
       const txCallback: () => Promise<transactionType> =
         this.generateTxCallback({
           rawTxMethod: async () =>
-            poolContract.populateTransaction.flashLoanSimple(
+            poolContract.populateTransaction.flashLoan(
               this.repayWithCollateralAddress,
-              fromAsset,
-              repayAllDebt
-                ? convertedRepayWithAmountWithSurplus
-                : convertedRepayWithAmount,
+              [assetToRepay],
+              [convertedRepayAmount],
+              [0], // interest rate mode to NONE for flashloan to not open debt
+              onBehalfOf ?? user,
               params,
               referralCode ?? '0',
             ),
@@ -1330,7 +1147,7 @@ export class Pool extends BaseService<IPool> implements PoolInterface {
     }
 
     const swapAndRepayTx: EthereumTransactionTypeExtended =
-      this.paraswapRepayWithCollateralAdapterService.swapAndRepay(
+      this.repayWithCollateralAdapterService.swapAndRepay(
         {
           user,
           collateralAsset: fromAsset,
@@ -1338,10 +1155,8 @@ export class Pool extends BaseService<IPool> implements PoolInterface {
           collateralAmount: convertedRepayWithAmount,
           debtRepayAmount: convertedRepayAmount,
           debtRateMode: rateMode,
-          permitParams,
-          repayAll: repayAllDebt ?? false,
-          swapAndRepayCallData,
-          augustus,
+          permit: permitParams,
+          useEthPath,
         },
         txs,
       );
@@ -1406,10 +1221,12 @@ export class Pool extends BaseService<IPool> implements PoolInterface {
 
     const txCallback: () => Promise<transactionType> = this.generateTxCallback({
       rawTxMethod: async () =>
-        poolContract.populateTransaction.flashLoanSimple(
+        poolContract.populateTransaction.flashLoan(
           this.flashLiquidationAddress,
-          borrowedAsset,
-          flashBorrowAmount,
+          [borrowedAsset],
+          [flashBorrowAmount],
+          [0],
+          initiator,
           params,
           '0',
         ),
@@ -1432,14 +1249,9 @@ export class Pool extends BaseService<IPool> implements PoolInterface {
   public async repayWithATokens(
     @isEthAddress('user')
     @isEthAddress('reserve')
+    @isEthAddress('onBehalfOf')
     @isPositiveOrMinusOneAmount('amount')
-    {
-      user,
-      amount,
-      reserve,
-      rateMode,
-      useOptimizedPath,
-    }: LPRepayWithATokensType,
+    { user, amount, reserve, rateMode, onBehalfOf }: LPRepayWithATokensType,
   ): Promise<EthereumTransactionTypeExtended[]> {
     if (reserve.toLowerCase() === API_ETH_MOCK_ADDRESS.toLowerCase()) {
       throw new Error(
@@ -1460,16 +1272,16 @@ export class Pool extends BaseService<IPool> implements PoolInterface {
         ? constants.MaxUint256.toString()
         : valueToWei(amount, decimals);
 
-    if (useOptimizedPath) {
-      return this.l2PoolService.repayWithATokens(
-        {
+    if (amount !== '-1') {
+      const fundsAvailable: boolean =
+        await this.synthetixService.synthetixValidation({
           user,
           reserve,
           amount: convertedAmount,
-          numericRateMode,
-        },
-        txs,
-      );
+        });
+      if (!fundsAvailable) {
+        throw new Error('Not enough funds to execute operation');
+      }
     }
 
     const txCallback: () => Promise<transactionType> = this.generateTxCallback({
@@ -1478,6 +1290,7 @@ export class Pool extends BaseService<IPool> implements PoolInterface {
           reserve,
           convertedAmount,
           numericRateMode,
+          onBehalfOf ?? user,
         ),
       from: user,
       value: getTxValue(reserve, convertedAmount),

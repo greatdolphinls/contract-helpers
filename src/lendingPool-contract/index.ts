@@ -15,7 +15,6 @@ import {
   API_ETH_MOCK_ADDRESS,
   DEFAULT_APPROVE_AMOUNT,
   SURPLUS,
-  augustusToAmountOffsetFromCalldata,
 } from '../commons/utils';
 import {
   LPFlashLiquidationValidator,
@@ -34,10 +33,6 @@ import {
   augustusFromAmountOffsetFromCalldata,
   LiquiditySwapAdapterService,
 } from '../paraswap-liquiditySwapAdapter-contract';
-import {
-  ParaswapRepayWithCollateral,
-  ParaswapRepayWithCollateralInterface,
-} from '../paraswap-repayWithCollateralAdapter-contract';
 import {
   RepayWithCollateralAdapterInterface,
   RepayWithCollateralAdapterService,
@@ -58,7 +53,6 @@ import {
   LPSwapCollateral,
   LPWithdrawParamsType,
   LPFlashLiquidation,
-  LPParaswapRepayWithCollateral,
 } from './lendingPoolTypes';
 import { ILendingPool } from './typechain/ILendingPool';
 import { ILendingPool__factory } from './typechain/ILendingPool__factory';
@@ -126,9 +120,6 @@ export interface LendingPoolInterface {
   flashLiquidation(
     args: LPFlashLiquidation,
   ): Promise<EthereumTransactionTypeExtended[]>;
-  paraswapRepayWithCollateral(
-    args: LPParaswapRepayWithCollateral,
-  ): Promise<EthereumTransactionTypeExtended[]>;
 }
 
 export class LendingPool
@@ -152,8 +143,6 @@ export class LendingPool
   readonly swapCollateralAddress: string;
 
   readonly repayWithCollateralAddress: string;
-
-  readonly paraswapRepayWithCollateralAdapterService: ParaswapRepayWithCollateralInterface;
 
   constructor(
     provider: providers.Provider,
@@ -191,9 +180,6 @@ export class LendingPool
         provider,
         REPAY_WITH_COLLATERAL_ADAPTER,
       );
-
-    this.paraswapRepayWithCollateralAdapterService =
-      new ParaswapRepayWithCollateral(provider, REPAY_WITH_COLLATERAL_ADAPTER);
   }
 
   @LPValidator
@@ -907,172 +893,6 @@ export class LendingPool
           debtRateMode: rateMode,
           permit: permitParams,
           useEthPath,
-        },
-        txs,
-      );
-
-    txs.push(swapAndRepayTx);
-
-    return txs;
-  }
-
-  @LPRepayWithCollateralValidator
-  public async paraswapRepayWithCollateral(
-    @isEthAddress('user')
-    @isEthAddress('fromAsset')
-    @isEthAddress('fromAToken')
-    @isEthAddress('assetToRepay')
-    @isEthAddress('onBehalfOf')
-    @isPositiveAmount('repayWithAmount')
-    @isPositiveAmount('repayAmount')
-    @isEthAddress('augustus')
-    {
-      user,
-      fromAsset,
-      fromAToken,
-      assetToRepay,
-      repayWithAmount,
-      repayAmount,
-      permitSignature,
-      repayAllDebt,
-      rateMode,
-      onBehalfOf,
-      referralCode,
-      flash,
-      swapAndRepayCallData,
-      augustus,
-    }: LPParaswapRepayWithCollateral,
-  ): Promise<EthereumTransactionTypeExtended[]> {
-    const txs: EthereumTransactionTypeExtended[] = [];
-
-    const permitParams = permitSignature ?? {
-      amount: '0',
-      deadline: '0',
-      v: 0,
-      r: '0x0000000000000000000000000000000000000000000000000000000000000000',
-      s: '0x0000000000000000000000000000000000000000000000000000000000000000',
-    };
-
-    const approved: boolean = await this.erc20Service.isApproved({
-      token: fromAToken,
-      user,
-      spender: this.repayWithCollateralAddress,
-      amount: repayWithAmount,
-    });
-
-    if (!approved) {
-      const approveTx: EthereumTransactionTypeExtended =
-        this.erc20Service.approve({
-          user,
-          token: fromAToken,
-          spender: this.repayWithCollateralAddress,
-          amount: constants.MaxUint256.toString(),
-        });
-
-      txs.push(approveTx);
-    }
-
-    const fromDecimals: number = await this.erc20Service.decimalsOf(fromAsset);
-    const convertedRepayWithAmount: string = valueToWei(
-      repayWithAmount,
-      fromDecimals,
-    );
-
-    const repayWithAmountWithSurplus: string = (
-      Number(repayWithAmount) +
-      (Number(repayWithAmount) * Number(SURPLUS)) / 100
-    ).toString();
-
-    const convertedRepayWithAmountWithSurplus: string = valueToWei(
-      repayWithAmountWithSurplus,
-      fromDecimals,
-    );
-
-    const decimals: number = await this.erc20Service.decimalsOf(assetToRepay);
-    const convertedRepayAmount: string = valueToWei(repayAmount, decimals);
-
-    const numericInterestRate = rateMode === InterestRate.Stable ? 1 : 2;
-
-    if (flash) {
-      const callDataEncoded = utils.defaultAbiCoder.encode(
-        ['bytes', 'address'],
-        [swapAndRepayCallData, augustus],
-      );
-
-      const params: string = utils.defaultAbiCoder.encode(
-        [
-          'address',
-          'uint256',
-          'uint256',
-          'uint256',
-          'bytes',
-          'uint256',
-          'uint256',
-          'uint8',
-          'bytes32',
-          'bytes32',
-        ],
-        [
-          assetToRepay,
-          convertedRepayAmount,
-          repayAllDebt
-            ? augustusToAmountOffsetFromCalldata(swapAndRepayCallData as string)
-            : 0,
-          numericInterestRate,
-          callDataEncoded,
-          permitParams.amount,
-          permitParams.deadline,
-          permitParams.v,
-          permitParams.r,
-          permitParams.s,
-        ],
-      );
-
-      const poolContract = this.getContractInstance(this.lendingPoolAddress);
-
-      const txCallback: () => Promise<transactionType> =
-        this.generateTxCallback({
-          rawTxMethod: async () =>
-            poolContract.populateTransaction.flashLoan(
-              this.repayWithCollateralAddress,
-              [fromAsset],
-              repayAllDebt
-                ? [convertedRepayWithAmountWithSurplus]
-                : [convertedRepayWithAmount],
-              [0], // interest rate mode to NONE for flashloan to not open debt
-              onBehalfOf ?? user,
-              params,
-              referralCode ?? '0',
-            ),
-          from: user,
-        });
-
-      txs.push({
-        tx: txCallback,
-        txType: eEthereumTxType.DLP_ACTION,
-        gas: this.generateTxPriceEstimation(
-          txs,
-          txCallback,
-          ProtocolAction.repayCollateral,
-        ),
-      });
-
-      return txs;
-    }
-
-    const swapAndRepayTx: EthereumTransactionTypeExtended =
-      this.paraswapRepayWithCollateralAdapterService.swapAndRepay(
-        {
-          user,
-          collateralAsset: fromAsset,
-          debtAsset: assetToRepay,
-          collateralAmount: convertedRepayWithAmount,
-          debtRepayAmount: convertedRepayAmount,
-          debtRateMode: rateMode,
-          permitParams,
-          repayAll: repayAllDebt ?? false,
-          swapAndRepayCallData,
-          augustus,
         },
         txs,
       );

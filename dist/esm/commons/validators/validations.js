@@ -6,7 +6,7 @@ import { utils } from 'ethers';
 import { canBeEnsAddress } from '../utils';
 // import { canBeEnsAddress } from '../../commons/utils';
 // import 'reflect-metadata';
-import { is0OrPositiveMetadataKey, isEthAddressArrayMetadataKey, isEthAddressMetadataKey, isPositiveMetadataKey, isPositiveOrMinusOneMetadataKey, isEthAddressArrayMetadataKeyNotEmpty, isEthAddressOrENSMetadataKey, isPermitDeadline32Bytes, } from './paramValidators';
+import { is0OrPositiveMetadataKey, isEthAddressArrayMetadataKey, isEthAddressMetadataKey, isPositiveMetadataKey, isPositiveOrMinusOneMetadataKey, isEthAddressArrayMetadataKeyNotEmpty, isEthAddressOrENSMetadataKey, } from './paramValidators';
 // export function optionalValidator(
 //   target: any,
 //   propertyName: string,
@@ -27,27 +27,6 @@ import { is0OrPositiveMetadataKey, isEthAddressArrayMetadataKey, isEthAddressMet
 //   }
 //   return isParamOptional;
 // }
-export function isDeadline32BytesValidator(target, propertyName, methodArguments, isParamOptional) {
-    const addressParameters = Reflect.getOwnMetadata(isPermitDeadline32Bytes, target, propertyName);
-    if (addressParameters) {
-        addressParameters.forEach(storedParams => {
-            if (storedParams.field) {
-                if (methodArguments[0][storedParams.field] &&
-                    Buffer.byteLength(methodArguments[0][storedParams.field], 'utf8') > 32) {
-                    throw new Error(`Deadline: ${methodArguments[0][storedParams.field]} is bigger than 32 bytes`);
-                }
-            }
-            else {
-                const isOptional = isParamOptional === null || isParamOptional === void 0 ? void 0 : isParamOptional[storedParams.index];
-                if (methodArguments[storedParams.index] &&
-                    !isOptional &&
-                    Buffer.byteLength(methodArguments[storedParams.index], 'utf8') > 32) {
-                    throw new Error(`Deadline: ${methodArguments[storedParams.index]} is bigger than 32 bytes`);
-                }
-            }
-        });
-    }
-}
 export function isEthAddressValidator(target, propertyName, methodArguments, isParamOptional) {
     const addressParameters = Reflect.getOwnMetadata(isEthAddressMetadataKey, target, propertyName);
     if (addressParameters) {

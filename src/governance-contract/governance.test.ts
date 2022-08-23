@@ -1,4 +1,5 @@
 import { BigNumber, providers, utils } from 'ethers';
+import * as ipfs from '../commons/ipfs';
 import { eEthereumTxType, GasType, transactionType } from '../commons/types';
 import { IAaveGovernanceV2 } from './typechain/IAaveGovernanceV2';
 import { IAaveGovernanceV2__factory } from './typechain/IAaveGovernanceV2__factory';
@@ -117,24 +118,6 @@ describe('GovernanceService', () => {
       expect(instance instanceof AaveGovernanceService).toEqual(true);
     });
   });
-
-  describe('getProposalsCount', () => {
-    afterEach(() => {
-      jest.clearAllMocks();
-    });
-    it('returns a number', async () => {
-      const instance = new AaveGovernanceService(provider, {
-        GOVERNANCE_ADDRESS,
-      });
-      jest.spyOn(IAaveGovernanceV2__factory, 'connect').mockReturnValueOnce({
-        getProposalsCount: async () => Promise.resolve(BigNumber.from(1)),
-      } as unknown as IAaveGovernanceV2);
-
-      const result = await instance.getProposalsCount();
-      expect(result).toBe(1);
-    });
-  });
-
   describe('submitVote', () => {
     afterEach(() => {
       jest.clearAllMocks();
@@ -197,53 +180,6 @@ describe('GovernanceService', () => {
       );
     });
   });
-  describe('getProposal', () => {
-    afterEach(() => {
-      jest.clearAllMocks();
-    });
-    it('Expects a proposal parsed if all params passed correctly', async () => {
-      const instance = new AaveGovernanceService(provider, {
-        GOVERNANCE_ADDRESS,
-        GOVERNANCE_HELPER_ADDRESS,
-      });
-      const spy = jest
-        .spyOn(IGovernanceV2Helper__factory, 'connect')
-        .mockReturnValue({
-          getProposal: async () => Promise.resolve(proposalMock),
-        } as unknown as IGovernanceV2Helper);
-
-      const proposal = await instance.getProposal({ proposalId: 1 });
-
-      expect(spy).toHaveBeenCalled();
-      expect(proposal).toEqual({
-        id: Number(proposalMock.id.toString()),
-        creator: proposalMock.creator,
-        executor: proposalMock.executor,
-        targets: proposalMock.targets,
-        values: proposalMock.values,
-        signatures: proposalMock.signatures,
-        calldatas: proposalMock.calldatas,
-        withDelegatecalls: proposalMock.withDelegatecalls,
-        startBlock: Number(proposalMock.startBlock.toString()),
-        endBlock: Number(proposalMock.endBlock.toString()),
-        executionTime: Number(proposalMock.executionTime.toString()),
-        forVotes: proposalMock.forVotes.toString(),
-        againstVotes: proposalMock.againstVotes.toString(),
-        executed: proposalMock.executed,
-        canceled: proposalMock.canceled,
-        strategy: proposalMock.strategy,
-        ipfsHash: proposalMock.ipfsHash,
-        state: Object.values(ProposalState)[proposalMock.proposalState],
-        minimumQuorum: proposalMock.minimumQuorum.toString(),
-        minimumDiff: proposalMock.minimumDiff.toString(),
-        executionTimeWithGracePeriod: Number(
-          proposalMock.executionTimeWithGracePeriod.toString(),
-        ),
-        proposalCreated: Number(proposalMock.proposalCreated.toString()),
-        totalVotingSupply: proposalMock.totalVotingSupply.toString(),
-      });
-    });
-  });
   describe('getProposals', () => {
     afterEach(() => {
       jest.clearAllMocks();
@@ -255,6 +191,18 @@ describe('GovernanceService', () => {
         GOVERNANCE_ADDRESS,
         GOVERNANCE_HELPER_ADDRESS,
       });
+      const ipfsSpy = jest.spyOn(ipfs, 'getProposalMetadata').mockReturnValue(
+        Promise.resolve({
+          title: 'mockTitle',
+          description: 'mockDescription',
+          shortDescription: 'mockShortDescription',
+          ipfsHash:
+            '0x04d1fd83d352a7caa14408cee133be97b5919c3a5cf79a47ded3c9b658447d79',
+          aip: 0,
+          author: 'lachs',
+          discussions: 'link',
+        }),
+      );
       const spy = jest
         .spyOn(IGovernanceV2Helper__factory, 'connect')
         .mockReturnValue({
@@ -264,6 +212,7 @@ describe('GovernanceService', () => {
       const proposals = await instance.getProposals({ skip, limit });
 
       expect(spy).toHaveBeenCalled();
+      expect(ipfsSpy).toHaveBeenCalled();
       expect(proposals[0]).toEqual({
         id: Number(proposalMock.id.toString()),
         creator: proposalMock.creator,
@@ -275,7 +224,7 @@ describe('GovernanceService', () => {
         withDelegatecalls: proposalMock.withDelegatecalls,
         startBlock: Number(proposalMock.startBlock.toString()),
         endBlock: Number(proposalMock.endBlock.toString()),
-        executionTime: Number(proposalMock.executionTime.toString()),
+        executionTime: proposalMock.executionTime.toString(),
         forVotes: proposalMock.forVotes.toString(),
         againstVotes: proposalMock.againstVotes.toString(),
         executed: proposalMock.executed,
@@ -285,17 +234,21 @@ describe('GovernanceService', () => {
         state: Object.values(ProposalState)[proposalMock.proposalState],
         minimumQuorum: proposalMock.minimumQuorum.toString(),
         minimumDiff: proposalMock.minimumDiff.toString(),
-        executionTimeWithGracePeriod: Number(
+        executionTimeWithGracePeriod:
           proposalMock.executionTimeWithGracePeriod.toString(),
-        ),
+        title: 'mockTitle',
+        description: 'mockDescription',
+        shortDescription: 'mockShortDescription',
         proposalCreated: Number(proposalMock.proposalCreated.toString()),
         totalVotingSupply: proposalMock.totalVotingSupply.toString(),
+        aip: 0,
+        author: 'lachs',
+        discussions: 'link',
       });
     });
     it('Expects to fail if gov address not eth address', async () => {
       const instance = new AaveGovernanceService(provider, {
         GOVERNANCE_ADDRESS: 'asdf',
-        ipfsGateway: 'https://cloudflare-ipfs.com/ipfs',
       });
       const getProposals = instance.getProposals({ skip, limit });
       expect(getProposals).toEqual([]);
