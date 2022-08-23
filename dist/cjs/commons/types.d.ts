@@ -12,6 +12,8 @@ export declare enum ChainId {
     mainnet = 1,
     ropsten = 3,
     kovan = 42,
+    bsc = 56,
+    bsc_testnet = 97,
     polygon = 137,
     mumbai = 80001,
     avalanche = 43114,

@@ -9,6 +9,8 @@ export const ChainIdToNetwork = {
     1: 'mainnet',
     3: 'ropsten',
     42: 'kovan',
+    56: 'bsc',
+    97: 'bsc_testnet',
     100: 'xDAI',
     137: 'polygon',
     80001: 'mumbai',
@@ -22,6 +24,8 @@ export var ChainId;
     ChainId[ChainId["mainnet"] = 1] = "mainnet";
     ChainId[ChainId["ropsten"] = 3] = "ropsten";
     ChainId[ChainId["kovan"] = 42] = "kovan";
+    ChainId[ChainId["bsc"] = 56] = "bsc";
+    ChainId[ChainId["bsc_testnet"] = 97] = "bsc_testnet";
     ChainId[ChainId["polygon"] = 137] = "polygon";
     ChainId[ChainId["mumbai"] = 80001] = "mumbai";
     ChainId[ChainId["avalanche"] = 43114] = "avalanche";
